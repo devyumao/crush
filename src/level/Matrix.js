@@ -18,7 +18,7 @@ define(function (require) {
 
         this._initTiles();
         this.fillToys();
-        this.detectValidSwaps();
+        this._detectValidSwaps();
     }
 
     Matrix.prototype._initTiles = function () {
@@ -140,9 +140,24 @@ define(function (require) {
 
         this.setToy(posA.col, posA.row, toyB);
         this.setToy(posB.col, posB.row, toyA);
+
+        this._detectValidSwaps();
     };
 
-    Matrix.prototype.detectValidSwaps = function () {
+    Matrix.prototype.invalidSwap = function (posA, posB) {
+        var toyA = this.getToy(posA.col, posA.row);
+        if (!toyA) {
+            return;
+        }
+        var toyB = this.getToy(posB.col, posB.row);
+        if (!toyB) {
+            return;
+        }
+
+        toyA.invalidSwapWith(toyB);
+    };
+
+    Matrix.prototype._detectValidSwaps = function () {
         var size = this.size;
 
         for (var row = 0; row < size; ++row) {
@@ -184,7 +199,7 @@ define(function (require) {
             return false;
         }
         var toyB = this.getToy(posB.col, posB.row);
-        if (!toyB) {
+        if (!toyB || toyA.getType() === toyB.getType()) {
             return false;
         }
 
@@ -234,8 +249,6 @@ define(function (require) {
         }
 
         var minMatches = this.minMatches;
-
-        // console.log(horzLen, vertLen);
 
         return horzLen >= minMatches || vertLen >= minMatches;
     };

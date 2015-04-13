@@ -31,10 +31,6 @@ define(function (require) {
             x: pointer.x,
             y: pointer.y
         };
-
-        // console.log(this.matrix._checkMatchesOf(this.col, this.row));
-
-        console.log(this.getMove());
     }
 
     function onInputUp(target, pointer) {
@@ -72,15 +68,22 @@ define(function (require) {
             }
         }
 
-        if (deltaX || deltaY) {
-            var matrix = this.matrix;
-            matrix.swap(
-                this.getPos(),
-                {
-                    col: this.col + deltaX,
-                    row: this.row + deltaY
-                }
-            );
+        var move = this.move;
+        var matrix = this.matrix;
+        var posA = this.getPos();
+        var posB = {
+            col: this.col + deltaX,
+            row: this.row + deltaY
+        }
+        if ((deltaX === -1 && move.left)
+            || (deltaX === 1 && move.right)
+            || (deltaY === -1 && move.up)
+            || (deltaY === 1 && move.down)
+        ) {
+            matrix.swap(posA, posB);
+        }
+        else if ((deltaX || deltaY)) {
+            matrix.invalidSwap(posA, posB);
         }
 
         this.touchStart = null;
@@ -139,21 +142,25 @@ define(function (require) {
     };
 
     Toy.prototype.setMove = function (move) {
-        if (typeof move.up !== 'undefined') {
-            this.move.up = !!move.up;
-        }
-        if (typeof move.right !== 'undefined') {
-            this.move.right = !!move.right;
-        }
-        if (typeof move.down !== 'undefined') {
-            this.move.down = !!move.down;
-        }
-        if (typeof move.left !== 'undefined') {
-            this.move.left = !!move.left;
+        var thisMove = this.move;
+        for (var d in thisMove) {
+            if (thisMove.hasOwnProperty(d) && typeof move[d] !== 'undefined') {
+                thisMove[d] = move[d];
+            }
         }
     };
 
-    Toy.prototype.swapWith = function (other) {
+    Toy.prototype.canMove = function () {
+        var move = this.move;
+        for (var d in move) {
+            if (move.hasOwnProperty(d) && move[d]) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    Toy.prototype._animateSwap = function (other, invalid) {
         var game = this.game;
 
         var offset = this.el.width;
@@ -175,27 +182,43 @@ define(function (require) {
         }
 
         var ease = Phaser.Easing.Sinusoidal.InOut;
-        var duration = 300;
+        var duration = invalid ? 200 : 300;
         var elA = this.el;
+        var elB = other.el;
 
         // 本体置顶
         elA.bringToTop();
 
+        console.log(propA, propB);
+
         // 动画
         var moveA = game.add.tween(elA)
             .to(propA, duration, ease);
-        var moveB = game.add.tween(other.getEl())
+        var moveB = game.add.tween(elB)
             .to(propB, duration, ease);
+        if (invalid) {
+            var backA = game.add.tween(elA)
+                .to(propB, duration, ease);
+            var backB = game.add.tween(elB)
+                .to(propA, duration, ease);
+            moveA.chain(backA);
+            moveB.chain(backB);
+        }
         moveA.start();
         moveB.start();
+    };
+
+    Toy.prototype.swapWith = function (other) {
+        this._animateSwap(other);
 
         // 行列数据交换
+        var posB = other.getPos();
         other.setPos(this.getPos());
         this.setPos(posB);
     };
 
-    Toy.prototype.detectValidMoves = function () {
-
+    Toy.prototype.invalidSwapWith = function (other) {
+        this._animateSwap(other, true);
     };
 
     return Toy;
