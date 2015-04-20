@@ -6,6 +6,9 @@
 
 define(function (require) {
 
+    var TOP = 126;
+    var LEFT = 32;
+
     function Toy(game, options) {
         this.game = game;
         this.matrix = options.matrix;
@@ -26,11 +29,13 @@ define(function (require) {
         this._init();
     }
 
+    // TODO: 动画状态不可移
     function onInputDown(target, pointer) {
         this.touchStart = {
             x: pointer.x,
             y: pointer.y
         };
+        console.log(this);
     }
 
     function onInputUp(target, pointer) {
@@ -90,12 +95,9 @@ define(function (require) {
     }
 
     Toy.prototype._init = function () {
-        var top = 100;
-        var left = 6;
         var size = 52;
-
-        var x = left + size * this.col;
-        var y = top + size * this.row;
+        var x = LEFT + size * this.col;
+        var y = TOP + size * this.row;
 
         // var tile = this.game.add.image(x, y, 'tile');
         // tile.scale.set(size);
@@ -103,6 +105,7 @@ define(function (require) {
 
         var el = this.game.add.image(x, y, 'toy-' + this.type);
         el.scale.set(size);
+        el.anchor.set(0.5);
         el.inputEnabled = true;
         // el.input.enableDrag();
         // el.input.allowHorizontalDrag = false;
@@ -160,7 +163,7 @@ define(function (require) {
         return false;
     };
 
-    Toy.prototype._animateSwap = function (other, invalid) {
+    Toy.prototype._animateSwap = function (other, invalid, cb) {
         var game = this.game;
 
         var offset = this.el.width;
@@ -189,14 +192,13 @@ define(function (require) {
         // 本体置顶
         elA.bringToTop();
 
-        console.log(propA, propB);
-
         // 动画
         var moveA = game.add.tween(elA)
             .to(propA, duration, ease);
         var moveB = game.add.tween(elB)
             .to(propB, duration, ease);
         if (invalid) {
+            // 无效交换 弹回动画
             var backA = game.add.tween(elA)
                 .to(propB, duration, ease);
             var backB = game.add.tween(elB)
@@ -204,21 +206,61 @@ define(function (require) {
             moveA.chain(backA);
             moveB.chain(backB);
         }
+        else {
+            // 有效交换 动画完成处理其它
+            cb && moveA.onComplete.add(cb);
+        }
+
         moveA.start();
         moveB.start();
     };
 
-    Toy.prototype.swapWith = function (other) {
-        this._animateSwap(other);
-
-        // 行列数据交换
-        var posB = other.getPos();
-        other.setPos(this.getPos());
-        this.setPos(posB);
+    Toy.prototype.swapWith = function (other, cb) {
+        this._animateSwap(other, false, cb);
     };
+
+    // // 行列数据交换
+    // Toy.prototype._swapPosWith = function (other) {
+    //     var posB = other.getPos();
+    //     other.setPos(this.getPos());
+    //     this.setPos(posB);
+    // };
 
     Toy.prototype.invalidSwapWith = function (other) {
         this._animateSwap(other, true);
+    };
+
+    Toy.prototype.remove = function (cb) {
+        var game = this.game;
+
+        var vanish = game.add.tween(this.el.scale)
+            .to({x: 0, y: 0}, 400, Phaser.Easing.Quadratic.InOut);
+        vanish.onComplete.add(function () {
+            cb && cb();
+            this._destroy();
+        }, this);
+
+        // 数据在动画开始前清除，防止此时用户触发的 swap 对遗留数据依然起效
+        // 动画期间禁止操作，就不一定了
+        this.matrix.removeToy(this.col, this.row);
+        vanish.start();
+    };
+
+    Toy.prototype.fall = function (delay, cb) {
+        var game = this.game;
+        var el = this.el;
+        var elHeight = el.height;
+        var newY = TOP + elHeight * this.row;
+        var duration = (newY - el.y) / elHeight * 100;
+
+        var fall = game.add.tween(el)
+            .to({y: newY}, duration, Phaser.Easing.Quadratic.In, false, delay);
+        cb && fall.onComplete.add(cb);
+        fall.start();
+    };
+
+    Toy.prototype._destroy = function () {
+        this.el.destroy();
     };
 
     return Toy;
