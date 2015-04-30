@@ -18,6 +18,7 @@ define(function (require) {
         this.chains = [];
         this.numTypes = 6;
         this.minMatches = 3;
+        this.interactEnabled = true;
 
         this._initTiles();
         this._fillToys();
@@ -169,6 +170,7 @@ define(function (require) {
             });
         }
         else {
+            this.enableInteract();
             this._detectValidSwaps();
         }
     };
@@ -183,7 +185,10 @@ define(function (require) {
             return;
         }
 
-        toyA.invalidSwapWith(toyB);
+        var me = this;
+        toyA.invalidSwapWith(toyB, function () {
+            me.enableInteract();
+        });
     };
 
     Matrix.prototype._detectValidSwaps = function () {
@@ -386,6 +391,12 @@ define(function (require) {
             }
         }
 
+        // 无下落 直接继续
+        if (!columns.length) {
+            cb && cb();
+            return;
+        }
+
         // 动画
         for (var c = 0, lenColumns = columns.length; c < lenColumns; ++c) {
             var column = columns[c];
@@ -428,6 +439,8 @@ define(function (require) {
             }
         }
 
+        // 后期开发时注意一下：这里是否有必要判断无新增，同 _fillHoles
+
         // 动画
         for (var c = 0, lenColumns = columns.length; c < lenColumns; ++c) {
             var column = columns[c];
@@ -450,6 +463,18 @@ define(function (require) {
                 }
             }
         }
+    };
+
+    Matrix.prototype.isInteractEnabled = function () {
+        return this.interactEnabled;
+    };
+
+    Matrix.prototype.enableInteract = function () {
+        this.interactEnabled = true;
+    };
+
+    Matrix.prototype.disableInteract = function () {
+        this.interactEnabled = false;
     };
 
     return Matrix;

@@ -29,8 +29,14 @@ define(function (require) {
         this._init(options.hidden);
     }
 
-    // TODO: 动画状态不可移
     function onInputDown(target, pointer) {
+        var matrix = this.matrix;
+        // 交互判断及处理
+        if (!matrix.isInteractEnabled()) {
+            return;
+        }
+        matrix.disableInteract();
+
         this.touchStart = {
             x: pointer.x,
             y: pointer.y
@@ -206,12 +212,13 @@ define(function (require) {
                 .to(propB, duration, ease);
             var backB = game.add.tween(elB)
                 .to(propA, duration, ease);
+            cb && backB.onComplete.add(cb);
             moveA.chain(backA);
             moveB.chain(backB);
         }
         else {
             // 有效交换 动画完成处理其它
-            cb && moveA.onComplete.add(cb);
+            cb && moveB.onComplete.add(cb);
         }
 
         moveA.start();
@@ -229,8 +236,8 @@ define(function (require) {
     //     this.setPos(posB);
     // };
 
-    Toy.prototype.invalidSwapWith = function (other) {
-        this._animateSwap(other, true);
+    Toy.prototype.invalidSwapWith = function (other, cb) {
+        this._animateSwap(other, true, cb);
     };
 
     Toy.prototype.remove = function (cb) {
