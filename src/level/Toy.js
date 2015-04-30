@@ -26,7 +26,7 @@ define(function (require) {
             left: false
         };
 
-        this._init();
+        this._init(options.hidden);
     }
 
     // TODO: 动画状态不可移
@@ -94,7 +94,7 @@ define(function (require) {
         this.touchStart = null;
     }
 
-    Toy.prototype._init = function () {
+    Toy.prototype._init = function (hidden) {
         var size = 52;
         var x = LEFT + size * this.col;
         var y = TOP + size * this.row;
@@ -104,6 +104,9 @@ define(function (require) {
         // this.tile = tile;
 
         var el = this.game.add.image(x, y, 'toy-' + this.type);
+        if (hidden) {
+            el.alpha = 0;
+        }
         el.scale.set(size);
         el.anchor.set(0.5);
         el.inputEnabled = true;
@@ -256,6 +259,24 @@ define(function (require) {
         var fall = game.add.tween(el)
             .to({y: newY}, duration, Phaser.Easing.Quadratic.In, false, delay);
         cb && fall.onComplete.add(cb);
+        fall.start();
+    };
+
+    Toy.prototype.fallNew = function (fromRow, delay, cb) {
+        var game = this.game;
+        var el = this.el;
+        var elHeight = el.height;
+        var fromY = TOP + elHeight * fromRow;
+        var duration = (el.y - fromY) / elHeight * 100;
+
+        var show = game.add.tween(el)
+            .to({alpha: 1}, 100, Phaser.Easing.Quadratic.InOut, false, delay);
+
+        var fall = game.add.tween(el)
+            .from({y: fromY}, duration, Phaser.Easing.Quadratic.In, false, delay);
+        cb && fall.onComplete.add(cb);
+
+        show.start();
         fall.start();
     };
 

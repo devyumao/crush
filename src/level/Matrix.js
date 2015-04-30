@@ -57,14 +57,15 @@ define(function (require) {
         }
     };
 
-    Matrix.prototype._createToy = function (col, row) {
+    Matrix.prototype._createToy = function (col, row, hidden) {
         var type = this._generateToyType(col, row);
         var toy = new Toy(this.game, {
             matrix: this,
             group: this.toyGroup,
             row: row,
             col: col,
-            type: type
+            type: type,
+            hidden: !!hidden
         });
         this.toys[row][col] = toy;
         return toy;
@@ -161,8 +162,9 @@ define(function (require) {
             var me = this;
             this._removeMatches(function () {
                 me._fillHoles(function () {
-                    me._addNewToys();
-                    me._handleMatches();
+                    me._addNewToys(function () {
+                        me._handleMatches();
+                    });
                 });
             });
         }
@@ -404,23 +406,50 @@ define(function (require) {
         var size = this.size;
         var tiles = this.tiles;
         var columns = [];
+        var maxNews = 0; // 最长增加数
+        var maxIndex; // 最长增加列的 index
 
         // 自上而下遍历每一纵列
         for (var col = 0; col < size; ++col) {
             var newToys = [];
             for (var row = 0; row < size && !this.getToy(col, row); ++row) {
                 if (tiles[row][col]) {
-                    var toy = this._createToy(col, row);
-                    newToys.push(toy);
+                    var toy = this._createToy(col, row, true);
+                    newToys.unshift(toy); // 反向添加，位置下方的在数组前面
                 }
             }
             var newsNum = newToys.length;
             if (newsNum) {
                 columns.push(newToys);
+                if (newsNum >= maxNews) {
+                    maxNews = newsNum;
+                    maxIndex = columns.length - 1;
+                }
             }
         }
 
-        console.log(columns);
+        // 动画
+        for (var c = 0, lenColumns = columns.length; c < lenColumns; ++c) {
+            var column = columns[c];
+            for (var i = 0, len = column.length; i < len; ++i) {
+                var newToy = column[i];
+                var toyCol = newToy.getPos().col;
+                // 找所在列的最顶 tile
+                for (var tInd = 0; tInd < size; ++tInd) {
+                    if (tiles[tInd][toyCol]) {
+                        break;
+                    }
+                }
+                var fromRow = tInd - 1; // 从顶部以上一格
+                var delay = 100 + 200 * i;
+                if (i === len - 1 && c === maxIndex && cb) {
+                    newToy.fallNew(fromRow, delay, cb);
+                }
+                else {
+                    newToy.fallNew(fromRow, delay);
+                }
+            }
+        }
     };
 
     return Matrix;
