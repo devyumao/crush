@@ -6,7 +6,7 @@
 
 define(function (require) {
 
-    var TOP = 126;
+    var TOP = 160;
     var LEFT = 32;
 
     function Toy(game, options) {
@@ -16,7 +16,7 @@ define(function (require) {
         this.row = options.row;
         this.col = options.col;
         this.type = options.type;
-        // this.tile = null;
+        this.special = options.special ? options.special : 0; // TODO: 特殊元素
         this.el = null;
         this.touchStart = null;
         this.move = {
@@ -33,6 +33,7 @@ define(function (require) {
         var matrix = this.matrix;
         // 交互判断及处理
         if (!matrix.isInteractEnabled()) {
+            console.log('Interaction interdit');
             return;
         }
         matrix.disableInteract();
@@ -96,6 +97,9 @@ define(function (require) {
         else if ((deltaX || deltaY)) {
             matrix.invalidSwap(posA, posB);
         }
+        else {
+            matrix.enableInteract();
+        }
 
         this.touchStart = null;
     }
@@ -147,6 +151,14 @@ define(function (require) {
 
     Toy.prototype.getEl = function () {
         return this.el;
+    };
+
+    Toy.prototype.getX = function () {
+        return this.el.x;
+    };
+
+    Toy.prototype.getY = function () {
+        return this.el.y;
     };
 
     Toy.prototype.getMove = function () {
@@ -228,13 +240,6 @@ define(function (require) {
     Toy.prototype.swapWith = function (other, cb) {
         this._animateSwap(other, false, cb);
     };
-
-    // // 行列数据交换
-    // Toy.prototype._swapPosWith = function (other) {
-    //     var posB = other.getPos();
-    //     other.setPos(this.getPos());
-    //     this.setPos(posB);
-    // };
 
     Toy.prototype.invalidSwapWith = function (other, cb) {
         this._animateSwap(other, true, cb);

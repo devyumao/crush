@@ -1,46 +1,33 @@
 /**
  * @file 关卡
  * @author yumao [zhangyu38@baidu.com]
- * @create 2015-04-06
+ * @create 2015-05-03
  */
 
 define(function (require) {
 
-    var game;
+    function Level(game, data) {
+        var Matrix = require('./Matrix');
+        this.martix = new Matrix(game, {
+            level: this,
+            tiles: data.tiles
+        });
 
-    // TODO: promises
-    function fetch(cb) {
-        require('common/ajax').get({
-            url: 'data/level-1.json',
-            success: function (res) {
-                res = JSON.parse(res);
-                cb(res);
-            },
-            failure: function (err) {
-            }
+        var Board = require('./Board');
+        this.board = new Board(game, {
+            target: data.target,
+            moves: data.moves
         });
     }
 
-    function init() {
-
-    }
-
-    function create() {
-        game = this.game;
-
-        fetch(function (data) {
-            var Matrix = require('./Matrix');
-            var matrix = new Matrix(game, data);
-        });
-    }
-
-    function update() {
-    }
-
-    return {
-        init: init,
-        create: create,
-        update: update
+    Level.prototype.addScore = function (value) {
+        this.board.addScore(value);
     };
+
+    Level.prototype.minusOneMove = function () {
+        this.board.minusOneMove();
+    };
+
+    return Level;
 
 });

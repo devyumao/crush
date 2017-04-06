@@ -9,9 +9,10 @@ define(function (require) {
     var Toy = require('./Toy');
     var Chain = require('./Chain');
 
-    function Matrix(game, data) {
+    function Matrix(game, options) {
         this.game = game;
-        this.tiles = data.tiles;
+        this.level = options.level;
+        this.tiles = options.tiles;
         this.size = this.tiles.length;
         this.toyGroup = game.add.group();
         this.toys = [];
@@ -153,21 +154,25 @@ define(function (require) {
         toyA.swapWith(toyB, function () {
             me.setToy(posA.col, posA.row, toyB);
             me.setToy(posB.col, posB.row, toyA);
-            me._handleMatches();
+            me.level.minusOneMove();
+            me._handleMatches(1);
         });
     };
 
-    Matrix.prototype._handleMatches = function () {
+    Matrix.prototype._handleMatches = function (combMutiplier) {
         this._detectMatches();
         if (this.chains.length) {
             var me = this;
-            this._removeMatches(function () {
-                me._fillHoles(function () {
-                    me._addNewToys(function () {
-                        me._handleMatches();
+            this._removeMatches(
+                combMutiplier,
+                function () {
+                    me._fillHoles(function () {
+                        me._addNewToys(function () {
+                            me._handleMatches(++combMutiplier);
+                        });
                     });
-                });
-            });
+                }
+            );
         }
         else {
             this.enableInteract();
@@ -288,23 +293,42 @@ define(function (require) {
     };
 
     Matrix.prototype._detectMatches = function () {
-
         var me = this;
 
         // 水平检测
-        this._detectMatchesInOneDimen(function (col, row) {
+        var horzChains = this._getMatchesInOneDimen(function (col, row) {
             return me.getToy(col, row);
         });
         // 竖直检测
-        this._detectMatchesInOneDimen(function (col, row) {
+        var vertChains = this._getMatchesInOneDimen(function (col, row) {
             return me.getToy(row, col);
         });
+
+        // 相交检测
+        var chains = horzChains;
+        var vLen = vertChains.length;
+        var hLen = horzChains.length;
+        for (var vInd = 0; vInd < vLen; ++vInd) {
+            var vChain = vertChains[vInd];
+            var intersected = false;
+            for (var hInd = 0; hInd < hLen; ++hInd) {
+                var hChain = horzChains[hInd];
+                intersected = hChain.mergeWith(vChain);
+                if (intersected) {
+                    break;
+                }
+            }
+            !intersected && chains.push(vChain);
+        }
+        this.chains = chains;
     };
 
     // 检测一个维度的消除
-    Matrix.prototype._detectMatchesInOneDimen = function (getToy) {
+    Matrix.prototype._getMatchesInOneDimen = function (getToy) {
         var size = this.size;
         var minMatches = this.minMatches;
+        var chains = [];
+        var game = this.game;
 
         for (var row = 0; row < size; ++row) {
             for (var col = 0; col < size - minMatches + 1;) {
@@ -328,32 +352,42 @@ define(function (require) {
                     for (var i = col - chainLen; i < col; ++i) {
                         chainToys.push(getToy(i, row));
                     }
-                    var chain = new Chain({
+                    var chain = new Chain(game, {
                         matrix: this,
-                        toys: chainToys
+                        toys: chainToys,
+                        shape: 'I'
                     });
 
-                    this.chains.push(chain);
+                    chains.push(chain);
                 }
 
                 !other && (++col); // 跳过空档
             }
         }
+
+        return chains;
     };
 
-    Matrix.prototype._removeMatches = function (cb) {
+    Matrix.prototype._removeMatches = function (combMutiplier, cb) {
+        var game = this.game;
         var chains = this.chains;
+        var minMatches = this.minMatches;
+
+        console.log(chains);
         for (var i = 0, len = chains.length; i < len; ++i) {
+            var chain = chains[i];
+
+            var points = 60 * (chain.count() - minMatches + 1) * combMutiplier;
+            this.level.addScore(points);
+
             if (!cb || i !== len - 1) {
-                chains[i].remove();
+                chain.remove(points);
             }
             else {
                 // 末元素动画结束回调
-                chains[i].remove(cb);
+                chain.remove(points, cb);
             }
         }
-        // 为下次清空
-        this.chains = [];
     };
 
     Matrix.prototype._fillHoles = function (cb) {
@@ -475,6 +509,10 @@ define(function (require) {
 
     Matrix.prototype.disableInteract = function () {
         this.interactEnabled = false;
+    };
+
+    Matrix.prototype.getLevel = function () {
+        return this.level;
     };
 
     return Matrix;
