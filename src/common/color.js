@@ -7,7 +7,7 @@
 define(function () {
 
     var colors = {
-        'bg': '#FFE6CD'
+        'bg': '#fff7ef'
     };
 
     function get(color) {

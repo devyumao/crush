@@ -117,7 +117,8 @@ define(function (require) {
         if (hidden) {
             el.alpha = 0;
         }
-        el.scale.set(size);
+        el.width = size;
+        el.height = size;
         el.anchor.set(0.5);
         el.inputEnabled = true;
         // el.input.enableDrag();
