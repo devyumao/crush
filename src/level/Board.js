@@ -87,6 +87,9 @@ define(function (require) {
     };
 
     Board.prototype.minusOneMove = function () {
+        if (this.moves === 0) {
+            return;
+        }
         this.moves -= 1;
         this.movesEl.text = '' + this.moves;
     };

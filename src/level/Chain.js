@@ -49,7 +49,7 @@ define(function (require) {
             midToy.getX(), midToy.getY(),
             '' + points,
             {
-                fill: '#ccc'
+                fill: '#f79992'
             }
         );
         pointsText.anchor.set(0.5);
